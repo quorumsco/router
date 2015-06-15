@@ -1,85 +1,42 @@
 package iogo
 
-import "net/http"
-
-type nodeType int
-
-const (
-	staticType nodeType = iota
-	paramType
+import (
+	"net/http"
+	"reflect"
 )
 
 type node struct {
-	nodeType  nodeType
-	key       uint8
-	handle    http.HandlerFunc
-	param     string
-	children  []*node
-	name      string
-	maxParams uint8
-	path      string
-	params    []param
+	segment  segment
+	handler  http.Handler
+	children []*node
 }
 
-type param struct {
-	key   string
-	value string
-}
-
-type NodeHeap []*node
-
-func (h NodeHeap) Len() int {
-	return len(h)
-}
-
-func (h NodeHeap) Less(i, j int) bool {
-	return h[i].key < h[j].key
-}
-
-func (h NodeHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
-}
-
-func (h *NodeHeap) Push(x interface{}) {
-	*h = append(*h, x.(*node))
-}
-
-func (h *NodeHeap) Pop() interface{} {
-	oldh := *h
-	x := oldh[len(oldh)-1]
-	newh := oldh[0 : len(oldh)-1]
-	*h = newh
-	return x
-}
-
-func newNode(key uint8, nodeType nodeType) *node {
+func newNode(key uint8) *node {
 	return &node{
-		key:      key,
 		children: make([]*node, 0),
-		nodeType: nodeType,
 	}
 }
 
-func findRec(n *node, path string, params []param) (http.HandlerFunc, bool, []param) {
+func findRec(n *node, path string, params []param) (http.Handler, bool, []param) {
 	switch {
 	case len(path) == 0:
-		return n.handle, n.handle != nil, params
+		return n.handler, n.handler != nil, params
 	default:
-		for _, e := range n.children {
-			if e.nodeType == staticType && e.key == path[0] {
-				handle, found, par := findRec(e, path[1:], params)
-				if found {
-					return handle, found, par
+		for _, child := range n.children {
+			remainingPath, newParam, matched := child.segment.Match(path)
+			if matched {
+				var (
+					handler        http.Handler
+					found          bool
+					returnedParams []param
+				)
+				if newParam.name != "" {
+					handler, found, returnedParams = findRec(child, remainingPath, append(params, newParam))
+				} else {
+					handler, found, returnedParams = findRec(child, remainingPath, params)
 				}
-			}
-		}
-		for _, e := range n.children {
-			if e.nodeType == paramType {
-				p, param := consumeParameter(path)
-				param.key = e.param
-				handle, found, par := findRec(e, p, append(params, param))
 				if found {
-					return handle, found, par
+					return handler, found, returnedParams
 				}
 			}
 		}
@@ -87,51 +44,33 @@ func findRec(n *node, path string, params []param) (http.HandlerFunc, bool, []pa
 	return nil, false, nil
 }
 
-func consumeParameter(path string) (string, param) {
-	var i = 0
-	for i < len(path) && path[i] != '/' {
-		i++
-	}
-	return path[i:], param{
-		value: path[:i],
-	}
+func (n *node) find(path string) (http.Handler, bool, []param) {
+	return findRec(n, path, make([]param, 0, 10))
 }
 
-func (n *node) find(path string) (http.HandlerFunc, bool, []param) {
-	return findRec(n, path, make([]param, 0, n.maxParams))
-}
-
-func insertRec(n *node, path string, handle http.HandlerFunc, params uint8) uint8 {
+func insertRec(n *node, segments []segment, handler http.Handler, params uint8) uint8 {
 	switch {
-	case len(path) == 0:
-		n.handle = handle
+	case len(segments) == 0:
+		n.handler = handler
 		return params
-	case path[0] == ':':
-		p, param := consumeParameter(path[1:])
-		for _, e := range n.children {
-			if e.nodeType == paramType && e.param == param.value {
-				return insertRec(e, p, handle, params+1)
-			}
-		}
-		node := newNode(0, paramType)
-		node.param = param.value
-		n.children = append(n.children, node)
-		return insertRec(node, p, handle, params+1)
 	default:
-		for _, e := range n.children {
-			if e.nodeType == staticType && e.key == path[0] {
-				return insertRec(e, path[1:], handle, params)
+		for _, child := range n.children {
+			if reflect.TypeOf(child.segment) == reflect.TypeOf(segments[0]) && child.segment.Is(segments[0]) {
+				return insertRec(child, segments[1:], handler, params+child.segment.Params())
 			}
 		}
-		node := newNode(path[0], staticType)
-		n.children = append(n.children, node)
-		return insertRec(node, path[1:], handle, params)
+		newNode := newNode(0)
+		newNode.segment = segments[0]
+		n.children = append(n.children, newNode)
+		return insertRec(newNode, segments[1:], handler, params+newNode.segment.Params())
 	}
+	return 0
 }
 
-func (n *node) insert(path string, handle http.HandlerFunc) {
-	params := insertRec(n, path, handle, 0)
-	if params > n.maxParams {
-		n.maxParams = params
+func (n *node) insert(path string, handler http.Handler) {
+	segments := parseSegments(path)
+	params := insertRec(n, segments, handler, 0)
+	if params > 10 {
+		//n.maxParams = params
 	}
 }
