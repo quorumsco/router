@@ -27,38 +27,39 @@ func New() *Router {
 }
 
 // Get is...
-func (r *Router) Get(path string, handle http.HandlerFunc) {
+func (r *Router) Get(path interface{}, handle http.HandlerFunc) {
 	r.Handle("GET", path, handle)
 }
 
 // Post is...
-func (r *Router) Post(path string, handle http.HandlerFunc) {
+func (r *Router) Post(path interface{}, handle http.HandlerFunc) {
 	r.Handle("POST", path, handle)
 }
 
 // Put is...
-func (r *Router) Put(path string, handle http.HandlerFunc) {
+func (r *Router) Put(path interface{}, handle http.HandlerFunc) {
 	r.Handle("PUT", path, handle)
 }
 
 // Patch is...
-func (r *Router) Patch(path string, handle http.HandlerFunc) {
+func (r *Router) Patch(path interface{}, handle http.HandlerFunc) {
 	r.Handle("PATCH", path, handle)
 }
 
 // Delete is...
-func (r *Router) Delete(path string, handle http.HandlerFunc) {
+func (r *Router) Delete(path interface{}, handle http.HandlerFunc) {
 	r.Handle("DELETE", path, handle)
 }
 
 // Options is...
-func (r *Router) Options(path string, handle http.HandlerFunc) {
+func (r *Router) Options(path interface{}, handle http.HandlerFunc) {
 	r.Handle("OPTIONS", path, handle)
 }
 
 // Handle is...
-func (r *Router) Handle(method string, path string, handle http.HandlerFunc) {
-	if path[0] != '/' {
+func (r *Router) Handle(method string, path interface{}, handle http.HandlerFunc) {
+	p := path.(string)
+	if p[0] != '/' {
 		panic("can't handle relative path")
 	}
 
@@ -66,7 +67,7 @@ func (r *Router) Handle(method string, path string, handle http.HandlerFunc) {
 		r.mux.routes[method] = newNode(0)
 	}
 
-	r.mux.routes[method].insert(r.prefix+path, r.applyTo(handle))
+	r.mux.routes[method].insert(r.prefix+p, r.applyTo(handle))
 }
 
 // Subrouter is...
