@@ -64,6 +64,7 @@ func cW(buf *bytes.Buffer, color []byte, s string, args ...interface{}) {
 	}
 }
 
+// Logger is...
 func Logger(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		reqID := ""

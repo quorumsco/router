@@ -64,7 +64,6 @@ func insertRec(n *node, segments []segment, handler http.Handler, params uint8) 
 		n.children = append(n.children, newNode)
 		return insertRec(newNode, segments[1:], handler, params+newNode.segment.Params())
 	}
-	return 0
 }
 
 func (n *node) insert(path string, handler http.Handler) {

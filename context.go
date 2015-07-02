@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// Context is...
-type Context struct {
+// RequestContext is...
+type RequestContext struct {
 	Env    map[interface{}]interface{}
 	Params []param
 	req    *http.Request
@@ -14,28 +14,28 @@ type Context struct {
 
 type iogoContextReadCloser struct {
 	io.ReadCloser
-	context *Context
+	context *RequestContext
 }
 
-func setContext(req *http.Request) *Context {
+func setContext(req *http.Request) *RequestContext {
 	c, ok := req.Body.(iogoContextReadCloser)
 	if !ok {
 		c = iogoContextReadCloser{
 			ReadCloser: req.Body,
-			context:    &Context{Env: make(map[interface{}]interface{})},
+			context:    &RequestContext{Env: make(map[interface{}]interface{})},
 		}
 		req.Body = c
 	}
 	return c.context
 }
 
-// GetContext is...
-func GetContext(req *http.Request) *Context {
+// Context is...
+func Context(req *http.Request) *RequestContext {
 	return req.Body.(iogoContextReadCloser).context
 }
 
-// GetParam is...
-func (c *Context) GetParam(name string) string {
+// Param is...
+func (c *RequestContext) Param(name string) string {
 	for _, e := range c.Params {
 		if e.name == name {
 			return e.value
@@ -45,6 +45,6 @@ func (c *Context) GetParam(name string) string {
 }
 
 // SetParams is...
-func (c *Context) SetParams(params []param) {
+func (c *RequestContext) setParams(params []param) {
 	c.Params = params
 }
