@@ -3,11 +3,11 @@ package router
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/iogo-framework/logs"
 	"github.com/zenazn/goji/web/mutil"
 )
 
@@ -99,7 +99,7 @@ func printStart(reqID string, r *http.Request) {
 	buf.WriteString("from ")
 	buf.WriteString(r.RemoteAddr)
 
-	log.Print(buf.String())
+	logs.Debug(buf.String())
 }
 
 func printEnd(reqID string, w mutil.WriterProxy, dt time.Duration) {
@@ -130,5 +130,5 @@ func printEnd(reqID string, w mutil.WriterProxy, dt time.Duration) {
 		cW(&buf, nRed, "%s", dt)
 	}
 
-	log.Print(buf.String())
+	logs.Debug(buf.String())
 }
