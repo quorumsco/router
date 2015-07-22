@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/iogo-framework/logs"
+	"github.com/quorumsco/logs"
 	"github.com/zenazn/goji/web/mutil"
 )
 
