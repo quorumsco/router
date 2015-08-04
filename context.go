@@ -17,7 +17,7 @@ type iogoContextReadCloser struct {
 	context *RequestContext
 }
 
-func setContext(req *http.Request) *RequestContext {
+func SetContext(req *http.Request) *RequestContext {
 	c, ok := req.Body.(iogoContextReadCloser)
 	if !ok {
 		c = iogoContextReadCloser{
